@@ -317,7 +317,7 @@ Agent: a loop where a model decides, asks for a tool, reads the result and repea
 
 - [x] Stage 1: Scaffold and agent loop
 - [x] Stage 2: Fake systems
-- [ ] Stage 3: Identity
+- [x] Stage 3: Identity
 - [ ] Stage 4: Gateway and audit log
 - [ ] Stage 5: Approvals, risk levels and limits
 - [ ] Stage 6: Console
