@@ -1,0 +1,152 @@
+[
+  {
+    "application_id": "APP-1001",
+    "business_name": "Kivu Juice Co",
+    "sector": "food",
+    "business_size": "SME",
+    "uses_plastics": true,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Kivu Juice Co"},
+      "lease": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Kivu Juice Co"},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Kivu Juice Co"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Kivu Juice Co"},
+      "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Kivu Juice Co"},
+      "esia": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Kivu Juice Co"}
+    }
+  },
+  {
+    "application_id": "APP-1002",
+    "business_name": "Huye Honey",
+    "sector": "food",
+    "business_size": "MSME",
+    "uses_plastics": false,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Huye Honey"},
+      "lease": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Huye Honey"},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Huye Honey"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Huye Honey"},
+      "proof_of_payment": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
+  },
+  {
+    "application_id": "APP-1003",
+    "business_name": "Musanze Dairy",
+    "sector": "food",
+    "business_size": "SME",
+    "uses_plastics": false,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2020-03-31", "business_name": "Musanze Dairy"},
+      "lease": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Musanze Dairy"},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Musanze Dairy"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Musanze Dairy"},
+      "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Musanze Dairy"},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
+  },
+  {
+    "application_id": "APP-1004",
+    "business_name": "Rubavu Spices",
+    "sector": "food",
+    "business_size": "MSME",
+    "uses_plastics": false,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Rubavu Spices"},
+      "lease": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Rubavu Spice Cooperative"},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Rubavu Spices"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Rubavu Spices"},
+      "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Rubavu Spices"},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
+  },
+  {
+    "application_id": "APP-1005",
+    "business_name": "Gasabo Water",
+    "sector": "food",
+    "business_size": "large",
+    "uses_plastics": false,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Gasabo Water"},
+      "lease": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Gasabo Water"},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Gasabo Water"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Gasabo Water"},
+      "proof_of_payment": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
+  },
+  {
+    "application_id": "APP-1006",
+    "business_name": "Nyagatare Glow Cosmetics",
+    "sector": "cosmetics",
+    "business_size": "large",
+    "uses_plastics": true,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Nyagatare Glow Cosmetics"},
+      "lease": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Nyagatare Glow Cosmetics"},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Nyagatare Glow Cosmetics"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Nyagatare Glow Cosmetics"},
+      "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Nyagatare Glow Cosmetics"},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
+  },
+  {
+    "application_id": "APP-1007",
+    "business_name": "Gisenyi Soap Works",
+    "sector": "cosmetics",
+    "business_size": "MSME",
+    "uses_plastics": false,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Gisenyi Soap Works"},
+      "lease": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Gisenyi Soap Works"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Gisenyi Soap Works"},
+      "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Gisenyi Soap Works"},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
+  },
+  {
+    "application_id": "APP-1008",
+    "business_name": "Akagera Botanicals",
+    "sector": "cosmetics",
+    "business_size": "SME",
+    "uses_plastics": false,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Akagera Botanicals"},
+      "lease": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Akagera Botanicals"},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Akagera Botanicals"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Akagera Botanicals"},
+      "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Akagera Botanicals"},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
+  },
+  {
+    "application_id": "APP-1009",
+    "business_name": "Ruhengeri Grain Mill",
+    "sector": "food",
+    "business_size": "SME",
+    "uses_plastics": false,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Ruhengeri Grain Mill"},
+      "lease": {"present": true, "legible": false, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Ruhengeri Grain Mill"},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Ruhengeri Grain Mill"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Ruhengeri Grain Mill"},
+      "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Ruhengeri Grain Mill"},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
+  },
+  {
+    "application_id": "APP-1010",
+    "business_name": "Nyamata Shea Care",
+    "sector": "cosmetics",
+    "business_size": "SME",
+    "uses_plastics": false,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": false, "expiry_date": "2099-12-31", "business_name": "Nyamata Shea Care"},
+      "lease": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Nyamata Shea Care"},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Nyamata Shea Care"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Nyamata Shea Care"},
+      "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Nyamata Shea Care"},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
+  }
+]

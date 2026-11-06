@@ -25,13 +25,15 @@ This is a portfolio and demo product using FAKE DATA ONLY. It is inspired by the
 
 ## 3. Demo story (use this everywhere)
 
-A licensing office has two fake systems and three agents.
+A harmonised food and cosmetics licensing service is represented by fake
+applications and four fake review-agency queues. This is a demo inspired by a
+public case, not an official RAIA, Irembo, MINICOM or government product.
 
-- Systems: a Licence System and a Complaints System (both fake, both small FastAPI services).
-- Agent "reader": read only. Can look up licence status and list open complaints.
-- Agent "drafter": can draft a notice to a business. It can request to send the notice, but sending needs human approval.
-- Agent "flagger": can list open complaints and flag overdue cases. Nothing else.
-- A tool called `approve_licence` exists but NO agent may ever hold it. Licence decisions stay with a human officer. It is used in attack tests.
+- Systems: an Application System and a Review System, both small fake FastAPI services.
+- Application records include business size, plastics use, and six fake document records.
+- The Review System holds queues for RFDA, RICA, RSB and REMA, plus returned files and return rounds.
+- Document checks are explicit demo rules in Python, not model decisions or official requirements.
+- All businesses, files, review notes and outcomes are invented.
 
 ## 4. Hard rules (non-negotiable)
 
@@ -108,13 +110,13 @@ MAX_COST_PER_RUN=0.50
   +---------------------------------+-------------------------------+
         |                           |
         v                           v
-  Licence System (fake)      Complaints System (fake)
+  Application System (fake)  Review System (fake)
 
   Console (HTML) for humans: agents, permissions, approvals, audit log
   Model connector (app/llm.py): the only place models are called
 ```
 
-Request flow example: reader asks to call `get_licence_status("Kivu Juice Co")`. Gateway authenticates, confirms reader is active, validates input, confirms reader has that permission, checks caps, sees risk class "assistive" (no approval needed), calls the Licence System with the service key, writes an audit entry "allowed", and returns the result.
+Request flow example: an agent asks to call `get_application("APP-1001")`. Gateway authenticates, validates input and permission, checks caps, calls the Application System with the service key, writes an audit entry and returns the fake application.
 
 Approval example: drafter asks to call `send_notice`. Gateway sees risk class "supervised, needs approval", creates an approval record with status `pending`, writes an audit entry "pending approval", and returns "pending" to the agent. An officer approves in the console. Only then does the gateway run the action and log "executed after approval by <officer>".
 
@@ -144,10 +146,11 @@ agentgate/
     main.py                 (FastAPI app for gateway and console routes)
     console/index.html      (console page)
   systems/
-    licence_system.py       (fake FastAPI service)
-    complaints_system.py    (fake FastAPI service)
+    application_system.py   (fake FastAPI service)
+    review_system.py        (fake FastAPI service)
+    auth.py                 (service-key check)
   data/
-    fake_licences.json  fake_complaints.json  fake_documents/
+    fake_applications.json  fake_reviews.json
   tests/
     test_gateway.py  test_identity.py  test_audit.py
     test_approvals.py  test_limits.py  test_attacks.py
@@ -175,7 +178,7 @@ Hash chain: `entry_hash = sha256(prev_hash + canonical_json(entry_without_hash))
 
 | Level | Meaning | Example here |
 |---|---|---|
-| assistive | Agent reads or explains. No effect on records. | `get_licence_status` |
+| assistive | Agent reads or explains. No effect on records. | `get_application` |
 | supervised | Agent prepares an action. A human confirms before it takes effect. | `send_notice` |
 | proactive | Agent starts an action from a signal, within limits. | `flag_case` on overdue complaint |
 | autonomous_with_oversight | Agent acts alone, a human reviews afterwards. | Not used in the demo by default |
@@ -184,14 +187,11 @@ Each tool has a risk class that sets the maximum autonomy allowed. Anything with
 
 ## 10. Tools in the demo
 
-| Tool | System | Risk class | Who may hold it |
-|---|---|---|---|
-| `get_licence_status(business)` | Licence | assistive | reader |
-| `list_open_complaints(business)` | Complaints | assistive | reader, flagger |
-| `draft_notice(business, message)` | Complaints | assistive (creates a draft only) | drafter |
-| `send_notice(draft_id)` | Complaints | supervised (needs approval) | drafter, via approval |
-| `flag_case(case_id, reason)` | Complaints | proactive | flagger |
-| `approve_licence(business)` | Licence | decision (human only) | NOBODY (used in attack tests) |
+| Tool | System | Behavior |
+|---|---|---|
+| `get_application(application_id)` | Application | Returns one fake application. |
+| `check_documents(application_id)` | Application + Python checks | Applies explicit, tested demo checks; not official rules. |
+| `list_returned_files(agency)` | Review | Lists fake returned files, optionally filtered by RFDA, RICA, RSB or REMA. |
 
 ## 11. Components in detail
 
@@ -209,7 +209,7 @@ Each tool has a risk class that sets the maximum autonomy allowed. Anything with
 
 **limits.py.** Max steps per run, max seconds, max cost estimate. Hitting a cap stops the loop and writes an audit entry.
 
-**Fake systems.** Small FastAPI services with documented OpenAPI schemas. They reject any request without `GATEWAY_SERVICE_KEY`. Fake data only.
+**Fake systems.** The Application and Review FastAPI services have documented OpenAPI schemas. They reject requests without a matching `X-Gateway-Key` value from `GATEWAY_SERVICE_KEY`. Fake data only.
 
 **Console.** One HTML page, vanilla JavaScript calling the API. Four panels: Agents (status and a big Suspend/Resume button), Permissions (per agent), Approval inbox (pending items with approve and reject), Audit log (with a Verify button that shows chain status). Add a plain-English explanation to each log row.
 
@@ -243,7 +243,7 @@ Build: folder structure, `.env.example`, `llm.py`, `config.py`, two fake tools a
 Done when: asking "Does Kivu Juice Co have a valid licence?" makes the agent call a tool and answer. An unknown business returns an error the model can read. An unrelated question gets a normal answer with no tool call. Tests pass.
 
 ### Stage 2: Fake systems
-Build: the Licence System and Complaints System as FastAPI services with OpenAPI docs, loading fake data from `data/`. They require the service key. Update the tools to call these services (still no gateway yet).
+Build: Application and Review FastAPI services with OpenAPI docs, loading fake licensing and review data from `data/`. They require the service key. Update the tools to call these services (still no gateway yet).
 Done when: both services run, return correct data, and reject calls without the key.
 
 ### Stage 3: Identity
@@ -316,7 +316,7 @@ Agent: a loop where a model decides, asks for a tool, reads the result and repea
 ## 18. Status checklist (update after each stage)
 
 - [x] Stage 1: Scaffold and agent loop
-- [ ] Stage 2: Fake systems
+- [x] Stage 2: Fake systems
 - [ ] Stage 3: Identity
 - [ ] Stage 4: Gateway and audit log
 - [ ] Stage 5: Approvals, risk levels and limits

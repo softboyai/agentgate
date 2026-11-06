@@ -1,0 +1,34 @@
+{
+  "queues": {
+    "RFDA": ["APP-1001", "APP-1002", "APP-1005"],
+    "RICA": ["APP-1003", "APP-1006"],
+    "RSB": ["APP-1001", "APP-1004", "APP-1008"],
+    "REMA": ["APP-1001", "APP-1006"]
+  },
+  "returned_files": [
+    {
+      "application_id": "APP-1003",
+      "agency": "RFDA",
+      "return_rounds": 1,
+      "reasons": ["A fake review note requests a current trademark record."]
+    },
+    {
+      "application_id": "APP-1004",
+      "agency": "RICA",
+      "return_rounds": 2,
+      "reasons": ["A fake review note identifies a business-name mismatch."]
+    },
+    {
+      "application_id": "APP-1006",
+      "agency": "REMA",
+      "return_rounds": 1,
+      "reasons": ["A fake review note requests an ESIA document."]
+    },
+    {
+      "application_id": "APP-1007",
+      "agency": "RSB",
+      "return_rounds": 3,
+      "reasons": ["A fake review note requests a lease document."]
+    }
+  ]
+}
