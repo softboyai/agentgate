@@ -97,6 +97,38 @@ def test_token_signed_with_wrong_secret_fails(isolated_identity, monkeypatch) ->
     assert "different jwt_secret" in str(error.value).lower()
 
 
+def test_token_without_kid_is_malformed(isolated_identity) -> None:
+    token = jwt.encode(
+        {
+            "agent_id": "test-agent",
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+        },
+        TEST_SECRET,
+        algorithm=identity.ALGORITHM,
+    )
+
+    with pytest.raises(identity.TokenVerificationError) as error:
+        isolated_identity.verify_token(token)
+
+    assert error.value.reason == "invalid_token"
+    assert str(error.value) == "Token is malformed."
+
+
+def test_token_without_exp_claim_is_invalid(isolated_identity) -> None:
+    token = jwt.encode(
+        {"agent_id": "test-agent"},
+        TEST_SECRET,
+        algorithm=identity.ALGORITHM,
+        headers={"kid": identity._key_id(TEST_SECRET)},
+    )
+
+    with pytest.raises(identity.TokenVerificationError) as error:
+        isolated_identity.verify_token(token)
+
+    assert error.value.reason == "invalid_token"
+    assert "exp" in str(error.value)
+
+
 def test_unknown_agent_fails(isolated_identity) -> None:
     _register(isolated_identity)
     token = isolated_identity.issue_token("test-agent")

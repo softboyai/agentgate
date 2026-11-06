@@ -5,7 +5,12 @@ from typing import Any
 from uuid import uuid4
 
 import jwt
-from jwt.exceptions import ExpiredSignatureError, InvalidSignatureError, InvalidTokenError
+from jwt.exceptions import (
+    ExpiredSignatureError,
+    InvalidSignatureError,
+    InvalidTokenError,
+    MissingRequiredClaimError,
+)
 
 from app import db
 from app.config import JWT_SECRET, TOKEN_TTL_MINUTES
@@ -157,13 +162,27 @@ def verify_token(token: str) -> dict[str, Any]:
             "altered_token", "Token is malformed or has been altered."
         ) from error
 
+    if "kid" not in header:
+        raise TokenVerificationError(
+            "invalid_token", "Token is malformed."
+        )
+
     if header.get("kid") != _key_id(JWT_SECRET):
         raise TokenVerificationError(
             "wrong_secret", "Token was signed with a different JWT_SECRET."
         )
 
     try:
-        claims = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+        claims = jwt.decode(
+            token,
+            JWT_SECRET,
+            algorithms=[ALGORITHM],
+            options={"require": ["exp", "agent_id"]},
+        )
+    except MissingRequiredClaimError as error:
+        raise TokenVerificationError(
+            "invalid_token", f"Token is missing the required '{error.claim}' claim."
+        ) from error
     except ExpiredSignatureError as error:
         raise TokenVerificationError(
             "expired_token", "Token has expired."
