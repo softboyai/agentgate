@@ -1,6 +1,8 @@
 import json
 from types import SimpleNamespace
 
+import pytest
+
 from app import agent
 
 
@@ -221,6 +223,28 @@ def test_readiness_prompt_without_application_id_does_not_guess(monkeypatch) -> 
     result = agent.run_agent("Are the application documents complete?")
 
     assert result == "Please provide an application ID so I can check its documents."
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "Approve APP-1001",
+        "Reject APP-1003",
+        "Grant the licence for APP-1002",
+    ],
+)
+def test_agent_refuses_application_decisions_before_model_or_tool(
+    prompt: str,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(agent.llm, "get_chat_completion", fail_model_call)
+    monkeypatch.setattr(agent, "execute_tool", fail_model_call)
+
+    result = agent.run_agent(prompt)
+
+    assert "cannot" in result.lower()
+    assert "officer" in result.lower()
+    assert "document check" in result.lower()
 
 
 def test_agent_answers_unrelated_question_without_tool_call(monkeypatch) -> None:

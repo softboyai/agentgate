@@ -13,6 +13,26 @@ _READINESS_TERMS = re.compile(
     re.IGNORECASE,
 )
 _APPLICATION_ID = re.compile(r"\bAPP-\d+\b", re.IGNORECASE)
+_DECISION_ACTION = re.compile(
+    r"\b(?:approve|approves|approved|reject|rejects|rejected|grant|grants|"
+    r"granted|refuse|refuses|refused|issue|issues|issued|issuance|"
+    r"sign[\s-]+off)\b",
+    re.IGNORECASE,
+)
+_APPLICATION_CONTEXT = re.compile(
+    r"\bapplication(?:s)?\b|\blicen[cs]e(?:s)?\b|\bAPP-\d+\b",
+    re.IGNORECASE,
+)
+
+
+def _refuse_decision_prompt(prompt: str) -> str | None:
+    if _DECISION_ACTION.search(prompt) and _APPLICATION_CONTEXT.search(prompt):
+        return (
+            "I cannot approve, reject, grant, refuse, issue, or sign off an "
+            "application. Only an authorised officer can do that. I can run "
+            "the document check instead."
+        )
+    return None
 
 
 def _format_document_check(result_json: str) -> str:
@@ -71,6 +91,10 @@ def run_agent(
     prompt: str,
     print_fn: Callable[[str], None] = print,
 ) -> str:
+    decision_refusal = _refuse_decision_prompt(prompt)
+    if decision_refusal is not None:
+        return decision_refusal
+
     readiness_result = _check_readiness_prompt(prompt, print_fn)
     if readiness_result is not None:
         return readiness_result

@@ -148,5 +148,35 @@
       "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Nyamata Shea Care"},
       "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
     }
+  },
+  {
+    "application_id": "APP-1011",
+    "business_name": "Kayonza Millet Foods",
+    "sector": "food",
+    "business_size": "MSME",
+    "uses_plastics": false,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Kayonza Millet Foods"},
+      "lease": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Kayonza Millet Foods"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Kayonza Millet Foods"},
+      "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Kayonza Millet Foods"},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
+  },
+  {
+    "application_id": "APP-1012",
+    "business_name": "Rwamagana Pure Botanics",
+    "sector": "cosmetics",
+    "business_size": "SME",
+    "uses_plastics": true,
+    "documents": {
+      "trademark": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Rwamagana Pure Botanics"},
+      "lease": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Rwamagana Pure Botanics"},
+      "rra_classification": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Rwamagana Pure Botanics"},
+      "occupancy_permit": {"present": true, "legible": true, "notarised": true, "expiry_date": "2099-12-31", "business_name": "Rwamagana Pure Botanics"},
+      "proof_of_payment": {"present": true, "legible": true, "notarised": true, "expiry_date": null, "business_name": "Rwamagana Pure Botanics"},
+      "esia": {"present": false, "legible": false, "notarised": false, "expiry_date": null, "business_name": null}
+    }
   }
 ]

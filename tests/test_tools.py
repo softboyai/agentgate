@@ -65,6 +65,32 @@ def test_plastics_business_without_esia_example_is_reported() -> None:
     assert ("missing", "esia") in _issue_codes("APP-1006")
 
 
+def test_added_missing_lease_application_has_only_lease_problem() -> None:
+    result = tools.evaluate_documents(APPLICATIONS["APP-1011"].model_dump())
+
+    assert result["issues"] == [
+        {
+            "code": "missing",
+            "document": "lease",
+            "message": "Required document 'lease' is missing.",
+        }
+    ]
+
+
+def test_added_plastics_application_without_esia_has_only_esia_problem() -> None:
+    application = APPLICATIONS["APP-1012"]
+    result = tools.evaluate_documents(application.model_dump())
+
+    assert application.uses_plastics is True
+    assert result["issues"] == [
+        {
+            "code": "missing",
+            "document": "esia",
+            "message": "Required document 'esia' is missing.",
+        }
+    ]
+
+
 def test_illegible_document_example_is_reported() -> None:
     assert ("illegible", "lease") in _issue_codes("APP-1009")
 
