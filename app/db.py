@@ -6,6 +6,7 @@ from typing import Iterator
 from app.config import PROJECT_ROOT
 
 DB_PATH = PROJECT_ROOT / "agentgate.db"
+AUDIT_GENESIS_HASH = "agentgate-audit-genesis-v1"
 
 
 def init_db(db_path: Path | None = None) -> None:
@@ -38,6 +39,40 @@ def init_db(db_path: Path | None = None) -> None:
                 PRIMARY KEY (agent_id, tool_name)
             )
             """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id TEXT PRIMARY KEY,
+                timestamp TEXT NOT NULL,
+                agent_id TEXT,
+                tool_name TEXT NOT NULL,
+                args_masked TEXT NOT NULL,
+                decision TEXT NOT NULL CHECK (decision IN ('allowed', 'denied', 'error')),
+                reason TEXT NOT NULL,
+                model_used TEXT,
+                prev_hash TEXT NOT NULL,
+                entry_hash TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS audit_chain_state (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                last_hash TEXT NOT NULL,
+                entry_count INTEGER NOT NULL,
+                last_entry_id TEXT
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT OR IGNORE INTO audit_chain_state
+                (id, last_hash, entry_count, last_entry_id)
+            VALUES (1, ?, 0, NULL)
+            """,
+            (AUDIT_GENESIS_HASH,),
         )
         if not permissions_table_exists:
             connection.executemany(

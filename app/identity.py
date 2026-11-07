@@ -27,9 +27,15 @@ class AgentUnavailableError(ValueError):
 
 
 class TokenVerificationError(ValueError):
-    def __init__(self, reason: str, message: str) -> None:
+    def __init__(
+        self,
+        reason: str,
+        message: str,
+        agent_id: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.reason = reason
+        self.agent_id = agent_id
 
 
 def _utc_now() -> datetime:
@@ -208,12 +214,16 @@ def verify_token(token: str) -> dict[str, Any]:
         )
     if agent["status"] == "suspended":
         raise TokenVerificationError(
-            "suspended_agent", f"Agent '{agent_id}' is suspended."
+            "suspended_agent",
+            f"Agent '{agent_id}' is suspended.",
+            agent_id=agent_id,
         )
     own_expiry = _agent_expiry(agent)
     if own_expiry is not None and own_expiry <= _utc_now():
         raise TokenVerificationError(
-            "agent_expired", f"Agent '{agent_id}' has expired."
+            "agent_expired",
+            f"Agent '{agent_id}' has expired.",
+            agent_id=agent_id,
         )
     return agent
 

@@ -43,6 +43,18 @@ Run the five-case gateway demo while both fake systems are running:
 .\.venv\Scripts\python.exe -m scripts.gateway_demo
 ```
 
+View recent audit entries and verify the hash chain:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.audit_view
+```
+
+Demonstrate tamper detection on a temporary database copy:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.tamper_demo
+```
+
 Run the tests from the repository root:
 
 ```powershell

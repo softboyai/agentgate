@@ -168,11 +168,11 @@ agentgate/
 
 `approvals`: id, agent_id, tool_name, args (JSON), reason, status (`pending`, `approved`, `rejected`), decided_by, decided_at, created_at.
 
-`audit_log`: id, timestamp, agent_id, tool_name, args_masked, decision (`allowed`, `denied`, `pending`, `executed_after_approval`, `rejected`, `error`), reason, approval_id, model_used, prev_hash, entry_hash.
+`audit_log`: id, timestamp, agent_id (null when token verification fails), tool_name, args_masked, decision (`allowed`, `denied`, `error`), reason, model_used, prev_hash, entry_hash.
 
 `usage`: run_id, agent_id, steps, elapsed_seconds, cost.
 
-Hash chain: `entry_hash = sha256(prev_hash + canonical_json(entry_without_hash))`. The first entry uses a fixed genesis value. `verify()` recomputes the whole chain and reports the first broken entry.
+Hash chain: `entry_hash = sha256(prev_hash + canonical_json(entry_fields))`, where `entry_fields` includes `prev_hash` and every stored field except `entry_hash`. Canonical JSON uses sorted keys and fixed separators. The first entry uses a fixed genesis value; a separately stored chain head and count let `verify()` detect deleted tail entries as well as edited or reordered rows.
 
 ## 9. Risk levels (from the RAIA terms of reference)
 
@@ -205,7 +205,7 @@ Each tool has a risk class that sets the maximum autonomy allowed. Anything with
 
 **risk.py and approvals.py.** Look up the tool's risk class and the agent's `requires_approval` flag. Create, list, approve and reject approvals. An agent can never approve its own request. Approval records who decided and when.
 
-**audit.py.** `append(entry)` and `verify()`. No update or delete function exists. Arguments are masked before storage (hide names and ID numbers beyond the first letters).
+**audit.py.** `append(entry)` writes to the hash chain in one immediate transaction, and `verify()` checks links, hashes, row order, and the stored chain head. There are no audit-row update or delete functions. Arguments are masked and truncated before storage; tokens, secrets, and model output are not stored.
 
 **limits.py.** Max steps per run, max seconds, max cost estimate. Hitting a cap stops the loop and writes an audit entry.
 
@@ -255,8 +255,8 @@ Build: `tools_registry.py`, the `permissions` table, ordered gateway checks, and
 Done when: allowed calls succeed, unpermitted calls are denied before input validation, invalid input is rejected before execution, and the agent sees only its permitted tools.
 
 ### Stage 4B: Audit log
-Build: the hash-chained `audit.py` with `verify()`, and audit entries for every gateway outcome.
-Done when: every outcome appears in the log, and editing a log row by hand makes `verify()` fail.
+Build: the hash-chained `audit.py`, atomic append, verification, gateway audit entries for every outcome, and safe audit-view/tamper-demo scripts.
+Done when: every outcome appears in the log, personal fields are masked, invalid-token entries have a null agent, and editing, deleting, or reordering a log row makes `verify()` fail.
 
 ### Stage 5: Approvals, risk levels and limits
 Build: risk classes, the approval queue, `send_notice` waiting for approval, suspend and resume, step, time and cost caps.
@@ -323,7 +323,7 @@ Agent: a loop where a model decides, asks for a tool, reads the result and repea
 - [x] Stage 2: Fake systems
 - [x] Stage 3: Identity
 - [x] Stage 4A: Gateway and permissions
-- [ ] Stage 4B: Audit log
+- [x] Stage 4B: Audit log
 - [ ] Stage 5: Approvals, risk levels and limits
 - [ ] Stage 6: Console
 - [ ] Stage 7: Knowledge and rules
