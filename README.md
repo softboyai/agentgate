@@ -22,9 +22,28 @@ Open two PowerShell windows at the repository root and run one command in each:
 
 OpenAPI docs are at `http://127.0.0.1:8001/docs` and
 `http://127.0.0.1:8002/docs`. Both services require the `X-Gateway-Key` header.
-The Stage 1 agent tools call these services over HTTP.
+The agent tools call these services over HTTP, through the Stage 4A gateway.
 
-Run the Stage 2 tests from the repository root:
+## Run the agent through the gateway
+
+Set `JWT_SECRET` in the project-root `.env` to at least 32 characters, then,
+with both fake systems running, start the agent from a third PowerShell window:
+
+```powershell
+.\.venv\Scripts\python.exe -m app.main
+```
+
+The agent defaults to the `reader` identity. Tool calls are authenticated,
+validated, and checked against that identity's seeded permissions before a
+tool handler runs.
+
+Run the five-case gateway demo while both fake systems are running:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.gateway_demo
+```
+
+Run the tests from the repository root:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest

@@ -12,6 +12,9 @@ def init_db(db_path: Path | None = None) -> None:
     path = db_path or DB_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path) as connection:
+        permissions_table_exists = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'permissions'"
+        ).fetchone() is not None
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS agents (
@@ -27,6 +30,46 @@ def init_db(db_path: Path | None = None) -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS permissions (
+                agent_id TEXT NOT NULL,
+                tool_name TEXT NOT NULL,
+                PRIMARY KEY (agent_id, tool_name)
+            )
+            """
+        )
+        if not permissions_table_exists:
+            connection.executemany(
+                "INSERT INTO permissions (agent_id, tool_name) VALUES (?, ?)",
+                [
+                    ("reader", "get_application"),
+                    ("reader", "check_documents"),
+                    ("reader", "list_returned_files"),
+                    ("drafter", "get_application"),
+                    ("drafter", "check_documents"),
+                    ("flagger", "get_application"),
+                    ("flagger", "list_returned_files"),
+                ],
+            )
+
+
+def has_permission(agent_id: str, tool_name: str) -> bool:
+    with get_connection() as connection:
+        row = connection.execute(
+            "SELECT 1 FROM permissions WHERE agent_id = ? AND tool_name = ?",
+            (agent_id, tool_name),
+        ).fetchone()
+    return row is not None
+
+
+def get_agent_permissions(agent_id: str) -> set[str]:
+    with get_connection() as connection:
+        rows = connection.execute(
+            "SELECT tool_name FROM permissions WHERE agent_id = ?",
+            (agent_id,),
+        ).fetchall()
+    return {row["tool_name"] for row in rows}
 
 
 @contextmanager

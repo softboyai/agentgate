@@ -2,9 +2,8 @@ import json
 import re
 from typing import Any, Callable
 
-from app import llm
+from app import gateway, identity, llm
 from app.config import MAX_STEPS
-from app.tools import TOOL_DEFINITIONS, execute_tool
 
 _READINESS_TERMS = re.compile(
     r"\b(readiness|ready|complete|completeness|missing documents?|"
@@ -72,6 +71,7 @@ def _format_document_check(result_json: str) -> str:
 
 def _check_readiness_prompt(
     prompt: str,
+    token: str,
     print_fn: Callable[[str], None],
 ) -> str | None:
     if not _READINESS_TERMS.search(prompt):
@@ -84,20 +84,34 @@ def _check_readiness_prompt(
     application_id = match.group().upper()
     arguments = json.dumps({"application_id": application_id})
     print_fn(f"Tool call: check_documents({arguments})")
-    return _format_document_check(execute_tool("check_documents", arguments))
+    result = gateway.call_tool(token, "check_documents", json.loads(arguments))
+    if result["status"] != "allowed":
+        return f"The document check could not be completed: {result['message']}"
+    return _format_document_check(json.dumps(result["data"]))
 
 
 def run_agent(
     prompt: str,
     print_fn: Callable[[str], None] = print,
+    agent_id: str = "reader",
 ) -> str:
     decision_refusal = _refuse_decision_prompt(prompt)
     if decision_refusal is not None:
         return decision_refusal
 
-    readiness_result = _check_readiness_prompt(prompt, print_fn)
+    identity.seed_demo_agents()
+    try:
+        token = identity.issue_token(agent_id)
+    except identity.AgentUnavailableError as error:
+        return f"Cannot start agent: {error}"
+
+    readiness_result = _check_readiness_prompt(prompt, token, print_fn)
     if readiness_result is not None:
         return readiness_result
+    try:
+        permitted_tools = gateway.get_permitted_tool_definitions(token)
+    except identity.TokenVerificationError as error:
+        return f"Cannot load permitted tools: {error}"
 
     messages: list[dict[str, Any]] = [
         {
@@ -119,7 +133,7 @@ def run_agent(
     steps = 0
 
     while True:
-        response = llm.get_chat_completion(messages, TOOL_DEFINITIONS)
+        response = llm.get_chat_completion(messages, permitted_tools)
         assistant_message = response.choices[0].message
         tool_calls = assistant_message.tool_calls or []
 
@@ -138,16 +152,29 @@ def run_agent(
                 return f"Stopped after reaching the {MAX_STEPS}-step limit."
 
             steps += 1
-            result = execute_tool(
-                tool_call.function.name,
-                tool_call.function.arguments,
-            )
-            if tool_call.function.name == "check_documents":
-                return _format_document_check(result)
+            try:
+                arguments = json.loads(tool_call.function.arguments)
+            except json.JSONDecodeError:
+                result = {
+                    "status": "denied",
+                    "reason": "invalid_arguments",
+                    "message": "Tool arguments are not valid JSON.",
+                }
+            else:
+                result = gateway.call_tool(
+                    token,
+                    tool_call.function.name,
+                    arguments,
+                )
+            if (
+                tool_call.function.name == "check_documents"
+                and result["status"] == "allowed"
+            ):
+                return _format_document_check(json.dumps(result["data"]))
             messages.append(
                 {
                     "role": "tool",
                     "tool_call_id": tool_call.id,
-                    "content": result,
+                    "content": json.dumps(result),
                 }
             )

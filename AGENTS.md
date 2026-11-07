@@ -96,11 +96,11 @@ MAX_COST_PER_RUN=0.50
         |  each call carries the agent's JWT token
         v
   +--------------------------- AgentGate ---------------------------+
-  |  1 Authenticate token                                           |
-  |  2 Agent exists and is active (not suspended, not expired)      |
-  |  3 Tool exists in the tool registry                             |
-  |  4 Validate inputs (Pydantic)                                   |
-  |  5 Permission check (deny by default)                           |
+  |  1 Verify the agent badge (JWT and active status)               |
+  |  2 Confirm the tool exists in the registry                      |
+  |  3 Check permission (deny by default)                            |
+  |  4 Validate input with Pydantic                                  |
+  |  5 Execute the tool only after all checks pass                  |
   |  6 Caps check (steps, time, cost)                               |
   |  7 Risk class: does a human need to approve?                    |
   |       yes -> create approval, return "pending"                  |
@@ -116,7 +116,7 @@ MAX_COST_PER_RUN=0.50
   Model connector (app/llm.py): the only place models are called
 ```
 
-Request flow example: an agent asks to call `get_application("APP-1001")`. Gateway authenticates, validates input and permission, checks caps, calls the Application System with the service key, writes an audit entry and returns the fake application.
+Request flow example: an agent asks to call `get_application("APP-1001")`. Gateway authenticates, checks that the tool exists, checks the agent's permission, validates the input, checks caps, calls the Application System with the service key, writes an audit entry and returns the fake application.
 
 Approval example: drafter asks to call `send_notice`. Gateway sees risk class "supervised, needs approval", creates an approval record with status `pending`, writes an audit entry "pending approval", and returns "pending" to the agent. An officer approves in the console. Only then does the gateway run the action and log "executed after approval by <officer>".
 
@@ -201,7 +201,7 @@ Each tool has a risk class that sets the maximum autonomy allowed. Anything with
 
 **identity.py.** Registers agents, issues short-lived JWTs (claims: agent_id, exp), verifies tokens, reads agent status. A suspended or expired agent fails verification at step 2 of the gateway.
 
-**gateway.py.** Implements the 9 step pipeline in section 6 in that exact order. Every outcome, including denials and errors, writes an audit entry. Returns a clear structured result (`allowed` with data, `denied` with reason, `pending` with approval id, or `error`).
+**gateway.py.** Stage 4A checks the agent badge, tool registration, permission, and input in that order, then executes the handler. Later Stage 4 work adds caps, risk checks, approvals, and the audit log. Returns a clear structured result.
 
 **risk.py and approvals.py.** Look up the tool's risk class and the agent's `requires_approval` flag. Create, list, approve and reject approvals. An agent can never approve its own request. Approval records who decided and when.
 
@@ -250,9 +250,13 @@ Done when: both services run, return correct data, and reject calls without the 
 Build: `agents` table, registry, JWT issue and verify, active and suspended status, the three demo agents registered.
 Done when: a valid token verifies, an expired or wrong token fails, and a suspended agent fails.
 
-### Stage 4: Gateway and audit log (the core, spend the most time here)
-Build: `tools_registry.py`, `permissions` table, the 9 step `gateway.py`, Pydantic validation, deny by default, and the hash-chained `audit.py` with `verify()`. The agent loop now calls only the gateway.
-Done when: allowed calls succeed, unpermitted calls are denied, bad input is rejected, every outcome appears in the log, and editing a log row by hand makes `verify()` fail.
+### Stage 4A: Gateway and permissions
+Build: `tools_registry.py`, the `permissions` table, ordered gateway checks, and Pydantic validation with deny-by-default permissions. The gateway checks the agent badge, tool registration, permission, and input in that order, then executes the handler. The agent loop calls only the gateway.
+Done when: allowed calls succeed, unpermitted calls are denied before input validation, invalid input is rejected before execution, and the agent sees only its permitted tools.
+
+### Stage 4B: Audit log
+Build: the hash-chained `audit.py` with `verify()`, and audit entries for every gateway outcome.
+Done when: every outcome appears in the log, and editing a log row by hand makes `verify()` fail.
 
 ### Stage 5: Approvals, risk levels and limits
 Build: risk classes, the approval queue, `send_notice` waiting for approval, suspend and resume, step, time and cost caps.
@@ -318,7 +322,8 @@ Agent: a loop where a model decides, asks for a tool, reads the result and repea
 - [x] Stage 1: Scaffold and agent loop
 - [x] Stage 2: Fake systems
 - [x] Stage 3: Identity
-- [ ] Stage 4: Gateway and audit log
+- [x] Stage 4A: Gateway and permissions
+- [ ] Stage 4B: Audit log
 - [ ] Stage 5: Approvals, risk levels and limits
 - [ ] Stage 6: Console
 - [ ] Stage 7: Knowledge and rules
