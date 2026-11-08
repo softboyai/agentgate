@@ -166,9 +166,9 @@ agentgate/
 
 `permissions`: agent_id, tool_name, scope (JSON, for example allowed businesses), requires_approval (bool).
 
-`approvals`: id, agent_id, tool_name, args (JSON), reason, status (`pending`, `approved`, `rejected`), decided_by, decided_at, created_at.
+`approvals`: id, agent_id, tool_name, arguments (frozen JSON), arguments_hash, reason, status (`pending`, `approved`, `rejected`, `expired`), requested_at, expires_at, decided_by, decided_at, decision_note.
 
-`audit_log`: id, timestamp, agent_id (null when token verification fails), tool_name, args_masked, decision (`allowed`, `denied`, `error`), reason, model_used, prev_hash, entry_hash.
+`audit_log`: id, timestamp, agent_id (null when token verification fails), tool_name, args_masked, decision (`allowed`, `denied`, `error`, `pending`, `executed_after_approval`, `rejected`, `approval_expired`), reason, model_used, prev_hash, entry_hash.
 
 `usage`: run_id, agent_id, steps, elapsed_seconds, cost.
 
@@ -178,12 +178,12 @@ Hash chain: `entry_hash = sha256(prev_hash + canonical_json(entry_fields))`, whe
 
 | Level | Meaning | Example here |
 |---|---|---|
-| assistive | Agent reads or explains. No effect on records. | `get_application` |
-| supervised | Agent prepares an action. A human confirms before it takes effect. | `send_notice` |
-| proactive | Agent starts an action from a signal, within limits. | `flag_case` on overdue complaint |
-| autonomous_with_oversight | Agent acts alone, a human reviews afterwards. | Not used in the demo by default |
+| assistive | Agent reads, explains, or drafts; no external effect. | `get_application`, `draft_return_notice` |
+| supervised | An officer must approve before the action takes effect. | `send_return_notice` |
+| proactive | Agent starts a bounded action from a signal. | No demo tool currently uses this class. |
+| decision | Legal or financial decisions reserved for an authorised officer. | `approve_application` (registered, but never executable) |
 
-Each tool has a risk class that sets the maximum autonomy allowed. Anything with legal or financial effect always requires a human decision. Autonomy only moves up when explicit entry criteria are met and documented.
+Each registered tool uses one of these risk classes. Legal or financial decisions are not delegated to model output.
 
 ## 10. Tools in the demo
 
@@ -192,6 +192,9 @@ Each tool has a risk class that sets the maximum autonomy allowed. Anything with
 | `get_application(application_id)` | Application | Returns one fake application. |
 | `check_documents(application_id)` | Application + Python checks | Applies explicit, tested demo checks; not official rules. |
 | `list_returned_files(agency)` | Review | Lists fake returned files, optionally filtered by RFDA, RICA, RSB or REMA. |
+| `draft_return_notice(application_id, message)` | Review | Creates a fake notice draft. Assistive; creating a draft does not send it. |
+| `send_return_notice(draft_id)` | Review | Sends a draft only after an officer approves the pending request. |
+| `approve_application(application_id)` | None | Decision-class registration with no executable handler; denied to every agent. |
 
 ## 11. Components in detail
 
@@ -201,9 +204,9 @@ Each tool has a risk class that sets the maximum autonomy allowed. Anything with
 
 **identity.py.** Registers agents, issues short-lived JWTs (claims: agent_id, exp), verifies tokens, reads agent status. A suspended or expired agent fails verification at step 2 of the gateway.
 
-**gateway.py.** Stage 4A checks the agent badge, tool registration, permission, and input in that order, then executes the handler. Later Stage 4 work adds caps, risk checks, approvals, and the audit log. Returns a clear structured result.
+**gateway.py.** Checks the agent badge, tool registration, permission, and input in that order. Supervised tools create a pending approval and are not executed until an officer decides.
 
-**risk.py and approvals.py.** Look up the tool's risk class and the agent's `requires_approval` flag. Create, list, approve and reject approvals. An agent can never approve its own request. Approval records who decided and when.
+**approvals.py.** Lists pending requests and lets registered demo officers approve or reject them. Before execution it checks the frozen arguments hash, expiry, agent status, and current permission; each approval can run at most once.
 
 **audit.py.** `append(entry)` writes to the hash chain in one immediate transaction, and `verify()` checks links, hashes, row order, and the stored chain head. There are no audit-row update or delete functions. Arguments are masked and truncated before storage; tokens, secrets, and model output are not stored.
 
@@ -258,10 +261,13 @@ Done when: allowed calls succeed, unpermitted calls are denied before input vali
 Build: the hash-chained `audit.py`, atomic append, verification, gateway audit entries for every outcome, and safe audit-view/tamper-demo scripts.
 Done when: every outcome appears in the log, personal fields are masked, invalid-token entries have a null agent, and editing, deleting, or reordering a log row makes `verify()` fail.
 
-### Stage 5: Approvals, risk levels and limits
-Build: risk classes, the approval queue, `send_notice` waiting for approval, suspend and resume, step, time and cost caps.
-Done when: drafter's `send_notice` stays `pending` until a human approves, an agent cannot approve its own request, a suspended agent is blocked immediately, and a runaway loop is stopped by the cap.
-Phase B extra here: rebuild the drafter workflow in LangGraph with an approval pause. The gateway must still be plain Python.
+### Stage 5A: Approvals and risk levels
+Build: assistive, supervised, proactive, and decision risk classes; demo officers; a pending approval queue; and `send_return_notice` held until an officer approves. Re-check status, permission, expiry, and frozen arguments before executing. The gateway stays plain Python.
+Done when: drafter's `send_return_notice` stays pending until an officer approves, an agent cannot approve its own request, an approval runs at most once, and rejection or expiry prevents execution.
+
+### Stage 5B: Limits
+Build: per-run step, time, and cost caps.
+Done when: runaway agent loops stop at their configured limits and the outcome is recorded.
 
 ### Stage 6: Console
 Build: `console/index.html` with Agents, Permissions, Approval inbox and Audit log panels, a Suspend button, and a Verify button.
@@ -324,7 +330,8 @@ Agent: a loop where a model decides, asks for a tool, reads the result and repea
 - [x] Stage 3: Identity
 - [x] Stage 4A: Gateway and permissions
 - [x] Stage 4B: Audit log
-- [ ] Stage 5: Approvals, risk levels and limits
+- [x] Stage 5A: Approvals and risk levels
+- [ ] Stage 5B: Limits
 - [ ] Stage 6: Console
 - [ ] Stage 7: Knowledge and rules
 - [ ] Stage 8: Test lab

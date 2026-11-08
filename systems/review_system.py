@@ -1,10 +1,11 @@
 from typing import Annotated, Any
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 
 from systems.auth import require_gateway_key
 from systems.data_loader import load_json
-from systems.schemas import Agency, ReturnedFile
+from systems.schemas import Agency, DraftReturnNoticeRequest, ReturnedFile
 
 app = FastAPI(
     title="AgentGate Fake Review System",
@@ -24,6 +25,7 @@ _returned_files = [
     ReturnedFile.model_validate(file_record)
     for file_record in _review_data["returned_files"]
 ]
+_return_notice_drafts: dict[str, dict[str, Any]] = {}
 
 
 @app.get(
@@ -75,3 +77,44 @@ def list_returned_files(
         for record in _returned_files
         if agency is None or record.agency == agency
     ]
+
+
+@app.post(
+    "/return-notices/drafts",
+    dependencies=[Depends(require_gateway_key)],
+)
+def draft_return_notice(request: DraftReturnNoticeRequest) -> dict[str, Any]:
+    if request.application_id not in _application_ids:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Application '{request.application_id}' was not found.",
+        )
+    draft_id = str(uuid4())
+    draft = {
+        "draft_id": draft_id,
+        "application_id": request.application_id,
+        "message": request.message,
+        "sent": False,
+    }
+    _return_notice_drafts[draft_id] = draft
+    return draft
+
+
+@app.post(
+    "/return-notices/{draft_id}/send",
+    dependencies=[Depends(require_gateway_key)],
+)
+def send_return_notice(draft_id: str) -> dict[str, Any]:
+    draft = _return_notice_drafts.get(draft_id)
+    if draft is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Return notice draft '{draft_id}' was not found.",
+        )
+    if draft["sent"]:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Return notice draft '{draft_id}' has already been sent.",
+        )
+    draft["sent"] = True
+    return draft

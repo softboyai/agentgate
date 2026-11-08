@@ -20,6 +20,10 @@ REVIEW_SYSTEM_URL = os.getenv(
     "REVIEW_SYSTEM_URL", "http://127.0.0.1:8002"
 ).rstrip("/")
 TOKEN_TTL_MINUTES = 15
+APPROVAL_TTL_MINUTES = int(os.getenv("APPROVAL_TTL_MINUTES", "30"))
+
+if APPROVAL_TTL_MINUTES < 1:
+    raise ValueError("APPROVAL_TTL_MINUTES must be at least 1")
 
 
 def load_jwt_secret(env_file: Path = ROOT_ENV_FILE) -> str:

@@ -34,6 +34,8 @@ _SENSITIVE_KEYS = {
     "messages",
     "prompt",
     "content",
+    "message",
+    "notice",
 }
 
 
@@ -121,8 +123,16 @@ def append(entry: dict[str, Any], db_path: Path | None = None) -> dict[str, Any]
             "model_used": None,
             "prev_hash": state["last_hash"],
         }
-        if fields["decision"] not in {"allowed", "denied", "error"}:
-            raise ValueError("Audit decision must be allowed, denied, or error.")
+        if fields["decision"] not in {
+            "allowed",
+            "denied",
+            "error",
+            "pending",
+            "executed_after_approval",
+            "rejected",
+            "approval_expired",
+        }:
+            raise ValueError("Audit decision is not supported.")
         if fields["agent_id"] is not None:
             fields["agent_id"] = str(fields["agent_id"])[:300]
 

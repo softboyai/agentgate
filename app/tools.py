@@ -32,15 +32,30 @@ class ReturnedFilesArgs(StrictArgs):
     agency: Agency | None = None
 
 
-def _service_request(base_url: str, path: str) -> Any:
+class DraftReturnNoticeArgs(StrictArgs):
+    application_id: str = Field(min_length=1, max_length=30)
+    message: str = Field(min_length=1, max_length=1000)
+
+
+class SendReturnNoticeArgs(StrictArgs):
+    draft_id: str = Field(min_length=1, max_length=50)
+
+
+def _service_request(
+    base_url: str,
+    path: str,
+    method: str = "GET",
+    payload: dict[str, Any] | None = None,
+) -> Any:
     if not GATEWAY_SERVICE_KEY:
         return {"error": "GATEWAY_SERVICE_KEY is not configured", "status_code": 503}
 
-    request = Request(
-        f"{base_url}{path}",
-        headers={"X-Gateway-Key": GATEWAY_SERVICE_KEY},
-        method="GET",
-    )
+    headers = {"X-Gateway-Key": GATEWAY_SERVICE_KEY}
+    body = None
+    if payload is not None:
+        headers["Content-Type"] = "application/json"
+        body = json.dumps(payload).encode("utf-8")
+    request = Request(f"{base_url}{path}", data=body, headers=headers, method=method)
     try:
         with urlopen(request, timeout=5) as response:
             try:
@@ -172,6 +187,23 @@ def list_returned_files(agency: Agency | None = None) -> Any:
     return result
 
 
+def draft_return_notice(application_id: str, message: str) -> dict[str, Any]:
+    return _service_request(
+        REVIEW_SYSTEM_URL,
+        "/return-notices/drafts",
+        method="POST",
+        payload={"application_id": application_id, "message": message},
+    )
+
+
+def send_return_notice(draft_id: str) -> dict[str, Any]:
+    return _service_request(
+        REVIEW_SYSTEM_URL,
+        f"/return-notices/{quote(draft_id, safe='')}/send",
+        method="POST",
+    )
+
+
 _TOOL_SPECS: dict[
     str, tuple[type[StrictArgs], Callable[..., Any], dict[str, Any]]
 ] = {
@@ -224,12 +256,53 @@ _TOOL_SPECS: dict[
             "additionalProperties": False,
         },
     ),
+    "draft_return_notice": (
+        DraftReturnNoticeArgs,
+        draft_return_notice,
+        {
+            "type": "object",
+            "properties": {
+                "application_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 30,
+                    "description": "Application ID for the fake return notice.",
+                },
+                "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Draft message to prepare for officer review.",
+                },
+            },
+            "required": ["application_id", "message"],
+            "additionalProperties": False,
+        },
+    ),
+    "send_return_notice": (
+        SendReturnNoticeArgs,
+        send_return_notice,
+        {
+            "type": "object",
+            "properties": {
+                "draft_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50,
+                }
+            },
+            "required": ["draft_id"],
+            "additionalProperties": False,
+        },
+    ),
 }
 
 _TOOL_DESCRIPTIONS = {
     "get_application": "Retrieve one fake harmonised food/cosmetics application.",
     "check_documents": "Check fake application documents using explicit demo-only rules.",
     "list_returned_files": "List fake files returned by RFDA, RICA, RSB, or REMA.",
+    "draft_return_notice": "Prepare a fake return notice for officer review.",
+    "send_return_notice": "Send a prepared return notice after officer approval.",
 }
 
 TOOL_DEFINITIONS = [

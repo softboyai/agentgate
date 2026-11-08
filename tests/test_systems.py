@@ -95,3 +95,49 @@ def test_returned_files_include_return_round_count() -> None:
 
     assert response.status_code == 200
     assert response.json()[0]["return_rounds"] >= 1
+
+
+def test_draft_return_notice_requires_gateway_key() -> None:
+    response = TestClient(review_app).post(
+        "/return-notices/drafts",
+        json={"application_id": "APP-1001", "message": "Please update your file."},
+    )
+
+    assert response.status_code == 401
+
+
+def test_draft_then_send_return_notice_with_gateway_key() -> None:
+    client = TestClient(review_app)
+    headers = {"X-Gateway-Key": KEY}
+    draft_response = client.post(
+        "/return-notices/drafts",
+        headers=headers,
+        json={"application_id": "APP-1001", "message": "Please update your file."},
+    )
+
+    assert draft_response.status_code == 200
+    draft = draft_response.json()
+    assert draft["sent"] is False
+
+    send_response = client.post(
+        f"/return-notices/{draft['draft_id']}/send",
+        headers=headers,
+    )
+
+    assert send_response.status_code == 200
+    assert send_response.json()["sent"] is True
+
+
+def test_review_system_rejects_sending_same_notice_twice() -> None:
+    client = TestClient(review_app)
+    headers = {"X-Gateway-Key": KEY}
+    draft = client.post(
+        "/return-notices/drafts",
+        headers=headers,
+        json={"application_id": "APP-1001", "message": "Please update your file."},
+    ).json()
+    client.post(f"/return-notices/{draft['draft_id']}/send", headers=headers)
+
+    response = client.post(f"/return-notices/{draft['draft_id']}/send", headers=headers)
+
+    assert response.status_code == 409

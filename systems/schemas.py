@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 Agency = Literal["RFDA", "RICA", "RSB", "REMA"]
 BusinessSize = Literal["MSME", "SME", "large"]
@@ -42,3 +42,10 @@ class ReturnedFile(BaseModel):
     agency: Agency
     return_rounds: int
     reasons: list[str]
+
+
+class DraftReturnNoticeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    application_id: str = Field(min_length=1, max_length=30)
+    message: str = Field(min_length=1, max_length=1000)

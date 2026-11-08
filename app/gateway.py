@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app import audit, db, identity
+from app import approvals, audit, db, identity
 from app.tools_registry import TOOLS
 
 
@@ -12,10 +12,13 @@ def _result(
     reason: str,
     message: str,
     data: Any = None,
+    approval_id: str | None = None,
 ) -> dict[str, Any]:
     result = {"status": status, "reason": reason, "message": message}
     if status == "allowed":
         result["data"] = data
+    if approval_id is not None:
+        result["approval_id"] = approval_id
     return result
 
 
@@ -28,6 +31,8 @@ def _finish(
     tool_name: str,
     arguments: Any,
     data: Any = None,
+    audit_decision: str | None = None,
+    approval_id: str | None = None,
 ) -> dict[str, Any]:
     try:
         audit.append(
@@ -35,7 +40,7 @@ def _finish(
                 "agent_id": agent_id,
                 "tool_name": tool_name,
                 "arguments": arguments,
-                "decision": status,
+                "decision": audit_decision or status,
                 "reason": reason,
             }
         )
@@ -45,7 +50,48 @@ def _finish(
             "audit_failed",
             "Audit log write failed; the tool result was withheld.",
         )
-    return _result(status, reason, message, data)
+    return _result(status, reason, message, data, approval_id)
+
+
+def execute_registered_tool(tool_name: str, arguments: Any) -> dict[str, Any]:
+    registration = TOOLS.get(tool_name)
+    if registration is None or registration.handler is None:
+        return _result("error", "tool_unavailable", "The registered action cannot run.")
+    try:
+        validated_arguments = registration.input_model.model_validate(arguments)
+    except ValidationError:
+        return _result(
+            "denied",
+            "invalid_arguments",
+            "Stored approval arguments are invalid.",
+        )
+    try:
+        data = registration.handler(**validated_arguments.model_dump(mode="json"))
+    except Exception:
+        return _result(
+            "error",
+            "tool_execution_failed",
+            f"Tool '{tool_name}' failed during execution.",
+        )
+    if isinstance(data, dict) and "error" in data:
+        message = (
+            "The downstream service is unavailable."
+            if data.get("status_code") == 503
+            else str(data["error"])
+        )
+        return _result("error", "tool_execution_failed", message)
+    return _result("allowed", "allowed", f"Tool '{tool_name}' completed.", data)
+
+
+def execute_approved_tool(tool_name: str, arguments: Any) -> dict[str, Any]:
+    registration = TOOLS.get(tool_name)
+    if registration is None or registration.risk_class != "supervised":
+        return _result(
+            "error",
+            "tool_unavailable",
+            "This approval is not for a supervised tool.",
+        )
+    return execute_registered_tool(tool_name, arguments)
 
 
 def get_permitted_tool_definitions(token: str) -> list[dict[str, Any]]:
@@ -118,6 +164,47 @@ def call_tool(
             arguments=arguments,
         )
 
+    if registration.risk_class == "supervised":
+        try:
+            approval = approvals.create_pending(
+                agent["id"],
+                tool_name,
+                validated_arguments.model_dump(mode="json"),
+                "Supervised action requires officer approval.",
+            )
+        except Exception:
+            return _finish(
+                "error",
+                "approval_creation_failed",
+                "Could not create an approval request.",
+                agent_id=agent["id"],
+                tool_name=tool_name,
+                arguments=arguments,
+            )
+        result = _finish(
+            "pending",
+            "pending_approval",
+            "This action is waiting for an authorised officer.",
+            agent_id=agent["id"],
+            tool_name=tool_name,
+            arguments=arguments,
+            audit_decision="pending",
+            approval_id=approval["id"],
+        )
+        if result["reason"] == "audit_failed":
+            approvals.cancel_unlogged(approval["id"])
+        return result
+
+    if registration.risk_class == "decision":
+        return _finish(
+            "denied",
+            "decision_requires_officer",
+            "Only an authorised officer can make this decision.",
+            agent_id=agent["id"],
+            tool_name=tool_name,
+            arguments=arguments,
+        )
+
     if registration.handler is None:
         return _finish(
             "error",
@@ -128,28 +215,12 @@ def call_tool(
             arguments=arguments,
         )
 
-    try:
-        data = registration.handler(**validated_arguments.model_dump())
-    except Exception:
+    result = execute_registered_tool(tool_name, validated_arguments.model_dump(mode="json"))
+    if result["status"] != "allowed":
         return _finish(
-            "error",
-            "tool_execution_failed",
-            f"Tool '{tool_name}' failed during execution.",
-            agent_id=agent["id"],
-            tool_name=tool_name,
-            arguments=arguments,
-        )
-
-    if isinstance(data, dict) and "error" in data:
-        message = (
-            "The downstream service is unavailable."
-            if data.get("status_code") == 503
-            else str(data["error"])
-        )
-        return _finish(
-            "error",
-            "tool_execution_failed",
-            message,
+            result["status"],
+            result["reason"],
+            result["message"],
             agent_id=agent["id"],
             tool_name=tool_name,
             arguments=arguments,
@@ -162,5 +233,5 @@ def call_tool(
         agent_id=agent["id"],
         tool_name=tool_name,
         arguments=arguments,
-        data=data,
+        data=result["data"],
     )

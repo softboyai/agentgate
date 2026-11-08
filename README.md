@@ -37,6 +37,15 @@ The agent defaults to the `reader` identity. Tool calls are authenticated,
 validated, and checked against that identity's seeded permissions before a
 tool handler runs.
 
+Stage 5A uses demo officers `officer-1` and `officer-2`. Supervised return
+notices wait for officer approval and expire after `APPROVAL_TTL_MINUTES`
+(30 minutes by default). Run the approval demonstration while the fake Review
+System is running:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.approval_demo
+```
+
 Run the five-case gateway demo while both fake systems are running:
 
 ```powershell

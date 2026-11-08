@@ -25,13 +25,15 @@ def _issue_codes(application_id: str) -> set[tuple[str, str]]:
     return {(issue["code"], issue["document"]) for issue in result["issues"]}
 
 
-def test_tool_schemas_expose_only_stage_two_tools() -> None:
+def test_tool_schemas_include_stage_two_and_stage_five_a_tools() -> None:
     names = [tool["function"]["name"] for tool in tools.TOOL_DEFINITIONS]
 
     assert names == [
         "get_application",
         "check_documents",
         "list_returned_files",
+        "draft_return_notice",
+        "send_return_notice",
     ]
 
 
