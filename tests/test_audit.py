@@ -87,27 +87,37 @@ def test_deleted_last_row_is_detected_by_chain_anchor(audit_db) -> None:
 def test_reordered_rows_break_previous_link(audit_db) -> None:
     first = append_entry()
     second = append_entry()
-    third = append_entry()
+    append_entry()
     with sqlite3.connect(audit_db) as connection:
-        rows = connection.execute(
-            "SELECT id, timestamp, agent_id, tool_name, args_masked, decision, "
-            "reason, model_used, prev_hash, entry_hash FROM audit_log ORDER BY rowid"
-        ).fetchall()
-        connection.execute("DELETE FROM audit_log")
-        for row in reversed(rows):
-            connection.execute(
-                "INSERT INTO audit_log "
-                "(id, timestamp, agent_id, tool_name, args_masked, decision, reason, "
-                "model_used, prev_hash, entry_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                row,
-            )
+        connection.execute(
+            "UPDATE audit_log SET sequence = 100 WHERE id = ?",
+            (first["id"],),
+        )
+        connection.execute(
+            "UPDATE audit_log SET sequence = 1 WHERE id = ?",
+            (second["id"],),
+        )
+        connection.execute(
+            "UPDATE audit_log SET sequence = 2 WHERE id = ?",
+            (first["id"],),
+        )
 
     result = audit.verify()
 
     assert result["ok"] is False
-    assert result["first_broken_id"] == third["id"]
+    assert result["first_broken_id"] == second["id"]
     assert result["reason"] == "previous_link_mismatch"
-    assert first["id"] != second["id"]
+
+
+def test_audit_sequence_is_auto_incrementing(audit_db) -> None:
+    first = append_entry()
+    second = append_entry()
+    with sqlite3.connect(audit_db) as connection:
+        rows = connection.execute(
+            "SELECT sequence, id FROM audit_log ORDER BY sequence"
+        ).fetchall()
+
+    assert rows == [(1, first["id"]), (2, second["id"])]
 
 
 def test_masking_preserves_application_id_and_redacts_personal_data(

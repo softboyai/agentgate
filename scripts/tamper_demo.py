@@ -17,7 +17,7 @@ def main() -> None:
         connection = sqlite3.connect(copy_path)
         try:
             rows = connection.execute(
-                "SELECT id FROM audit_log ORDER BY rowid"
+                "SELECT id FROM audit_log ORDER BY sequence"
             ).fetchall()
             if len(rows) < 3:
                 raise RuntimeError(

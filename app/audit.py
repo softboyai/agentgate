@@ -160,9 +160,9 @@ def verify(db_path: Path | None = None) -> dict[str, Any]:
     try:
         try:
             rows = connection.execute(
-                "SELECT id, timestamp, agent_id, tool_name, args_masked, decision, "
+                "SELECT sequence, id, timestamp, agent_id, tool_name, args_masked, decision, "
                 "reason, model_used, prev_hash, entry_hash "
-                "FROM audit_log ORDER BY rowid"
+                "FROM audit_log ORDER BY sequence"
             ).fetchall()
             state = connection.execute(
                 "SELECT last_hash, entry_count, last_entry_id "
@@ -176,6 +176,7 @@ def verify(db_path: Path | None = None) -> dict[str, Any]:
         previous_hash = GENESIS_HASH
         for checked, row in enumerate(rows, start=1):
             fields = dict(row)
+            fields.pop("sequence")
             entry_id = fields["id"]
             if fields["prev_hash"] != previous_hash:
                 return _broken(checked - 1, entry_id, "previous_link_mismatch")
@@ -206,12 +207,17 @@ def list_recent(limit: int = 20, db_path: Path | None = None) -> list[dict[str, 
     connection = _connect(db_path)
     try:
         rows = connection.execute(
-            "SELECT id, timestamp, agent_id, tool_name, args_masked, decision, "
+            "SELECT sequence, id, timestamp, agent_id, tool_name, args_masked, decision, "
             "reason, model_used, prev_hash, entry_hash "
-            "FROM audit_log ORDER BY rowid DESC LIMIT ?",
+            "FROM audit_log ORDER BY sequence DESC LIMIT ?",
             (limit,),
         ).fetchall()
-        return [dict(row) for row in rows]
+        entries = []
+        for row in rows:
+            entry = dict(row)
+            entry.pop("sequence")
+            entries.append(entry)
+        return entries
     finally:
         connection.close()
 
